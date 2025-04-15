@@ -1,4 +1,6 @@
+######cleaning#######
 # load libraries
+
 library (readstata13)
 library (readr)
 library (dplyr)
@@ -18,8 +20,10 @@ library(ggspatial)
 library(leaflet)
 library(plotly)
 # read data
+
 forest_data <- read_csv("~/D4JSem2/P_Data_Extract_From_Environment_Social_and_Governance_(ESG)_Data/Forestdata.csv")
 # only select relevant variables
+
 forest_data <- forest_data %>%
   select("Country Name", "1990 [YR1990]", "1991 [YR1991]", "1992 [YR1992]", 
          "1993 [YR1993]", "1994 [YR1994]", "1995 [YR1995]", "1996 [YR1996]", "1997 [YR1997]", 
@@ -29,6 +33,7 @@ forest_data <- forest_data %>%
          "2013 [YR2013]", "2014 [YR2014]", "2015 [YR2015]", "2016 [YR2016]", "2017 [YR2017]",
          "2018 [YR2018]", "2019 [YR2019]", "2020 [YR2020]", "2021 [YR2021]")
 # rename years
+
 forest_data <- forest_data %>%
   rename("1990" = "1990 [YR1990]",
          "1991" = "1991 [YR1991]",
@@ -63,7 +68,7 @@ forest_data <- forest_data %>%
          "2020" = "2020 [YR2020]",
          "2021" = "2021 [YR2021]")
 
-# remove missing values
+# remove missing values from variables
 
 forest_data <-  forest_data %>% 
   filter(!is.na(`Country Name`))
@@ -129,9 +134,11 @@ forest_data <-  forest_data %>%
   filter(!is.na(`2020`))
 forest_data <-  forest_data %>% 
   filter(!is.na(`2021`))
+#check missing variable percentage
 
 vis_miss(forest_data)
-# filter country name variable to only countries of interest
+# filter country name variable to only countries, no territories/regions/world data
+
 forest_data <- forest_data %>%
   filter(`Country Name` == "Afghanistan" |
            `Country Name` == "Albania" |
@@ -328,6 +335,7 @@ forest_data <- forest_data %>%
            `Country Name` == "Zimbabwe")
 
 # create new year variable and make years values instead of individual columns
+
 forest_table <- forest_data %>% 
   gather(`1990`, `1991`, `1992`, 
         `1993`, `1994`, `1995`, `1996`, `1997`, 
@@ -336,79 +344,122 @@ forest_table <- forest_data %>%
          `2008`, `2009`, `2010`, `2011`, `2012`,
          `2013`, `2014`, `2015`, `2016`, `2017`,
          `2018`, `2019`, `2020`, `2021`, key = "year", value = "% of forested land")
-# to deal with missing data transpose df to use fill up/down function to make any missing values have the most recent value
+# to deal with missing data - transpose df to use fill function to make any missing values represented by ".." have the most recent value
+
 forest_transposed = t(forest_data)
 forest_transposed[forest_transposed == ".."] <- NA
 forest_transposed_df <- as.data.frame(forest_transposed)
 forest_transposed_full <- forest_transposed_df %>% fill(8, 11, 16, 17, 22, 43, 46, 55, 56, 64, 87, 93, 95, 101, 102, 109, 113, 114, 117, 129, 133, 143, 150, 154, 155, 159, 170, 179, 182, 187, .direction = "up")
+# check missing values
+
 any(is.na(forest_transposed_full))
 vis_miss(forest_transposed_full)
+# transpose to swap rows and collumns
 
 forest_full_table <- t(forest_transposed_full)
-# transform matrix to dataframe in order to gather and make all years one collumn called year
+# transform matrix to dataframe i
+
 forest_full_df <- as.data.frame(forest_full_table)
 
-forest_full_table1 <- forest_full_df %>% 
-  gather(`1990`, `1991`, `1992`, 
-         `1993`, `1994`, `1995`, `1996`, `1997`, 
-         `1998`, `1999`, `2000`, `2001`, `2002`,
-         `2003`, `2004`, `2005`, `2006`, `2007`,
-         `2008`, `2009`, `2010`, `2011`, `2012`,
-         `2013`, `2014`, `2015`, `2016`, `2017`,
-         `2018`, `2019`, `2020`, `2021`, key = "year", value = "% of forested land")
-
-# new column for max and min of each country
-forest_full_table2 <- forest_full_df %>% 
-  mutate(max_forest = pmax(`1990`, `1991`, `1992`, 
-                           `1993`, `1994`, `1995`, `1996`, `1997`, 
-                           `1998`, `1999`, `2000`, `2001`, `2002`,
-                           `2003`, `2004`, `2005`, `2006`, `2007`,
-                           `2008`, `2009`, `2010`, `2011`, `2012`,
-                           `2013`, `2014`, `2015`, `2016`, `2017`,
-                           `2018`, `2019`, `2020`, `2021`, na.rm = TRUE)) %>% 
-  mutate(min_forest = pmin(`1990`, `1991`, `1992`, 
-                           `1993`, `1994`, `1995`, `1996`, `1997`, 
-                           `1998`, `1999`, `2000`, `2001`, `2002`,
-                           `2003`, `2004`, `2005`, `2006`, `2007`,
-                           `2008`, `2009`, `2010`, `2011`, `2012`,
-                           `2013`, `2014`, `2015`, `2016`, `2017`,
-                           `2018`, `2019`, `2020`, `2021`, na.rm = TRUE))
-
-final_forest_data <- forest_full_table2 %>% 
-  gather(`1990`, `1991`, `1992`, 
-         `1993`, `1994`, `1995`, `1996`, `1997`, 
-         `1998`, `1999`, `2000`, `2001`, `2002`,
-         `2003`, `2004`, `2005`, `2006`, `2007`,
-         `2008`, `2009`, `2010`, `2011`, `2012`,
-         `2013`, `2014`, `2015`, `2016`, `2017`,
-         `2018`, `2019`, `2020`, `2021`, key = "year", value = "% of forested land")
-
-######## visualisation 1 ###########
+######## visualisation 1 ##########
 # top 5 countries with the most total deforestation
-# add new column to final_forest_data that has difference between max and min
 # convert 1990 and 2021 columns to numeric so that they can be subtracted from each other 
-# - difference means they forest % got bigger over time - i want 5 largest positive number to show most deforestation
-final_forest_table <- forest_full_table2 %>%
+
+final_forest_table <- forest_full_df %>%
   mutate(`1990` = as.numeric(`1990`), 
     `2021` = as.numeric(`2021`),
     difference = `2021` - `1990`)
-# filter to top 5 countries & change name of gambia
+# filter to top 5 countries 
+
 top5 <- final_forest_table %>% 
   filter(`Country Name` == "Nicaragua" |
            `Country Name` == "Paraguay" |
            `Country Name` == "Gambia, The" |
            `Country Name` == "Cambodia" |
            `Country Name` == "Indonesia")
+# change name of gambia
+
 condition <- "Gambia, The"
 replacement <- "Gambia"
 top5$`Country Name` <- replace(top5$`Country Name`, top5$`Country Name` %in% condition, replacement)
-# initial plot, add breaks and width of bars, start y axis at 0, add % reorder countries to see which is most - decreasing.
-# add fonts and minimal theme, no x grid lines
 
-# change font family
+#gather to have year variable
+top5_time <- top5 %>% 
+  gather(`1990`, `1991`, `1992`, 
+         `1993`, `1994`, `1995`, `1996`, `1997`, 
+         `1998`, `1999`, `2000`, `2001`, `2002`,
+         `2003`, `2004`, `2005`, `2006`, `2007`,
+         `2008`, `2009`, `2010`, `2011`, `2012`,
+         `2013`, `2014`, `2015`, `2016`, `2017`,
+         `2018`, `2019`, `2020`, `2021`, key = "year", value = "% of forested land")
+# change % of forest to numeric
+top5_time <- top5_time %>%
+  mutate(`% of forested land` = as.numeric(`% of forested land`))
+# add fonts
+
 font_add_google("DM Sans", 
                 family = "dm_sans")
 showtext_auto()
+
+# plot top 5 - line graph
+
+vis1 <- top5_time %>% 
+  ggplot() +
+  geom_line(aes(x = year, y = `% of forested land`,
+                color = `Country Name`,
+                group = `Country Name`),
+            size = 1) +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0, 100),
+                     breaks = seq(0, 100, 10),
+                     labels = paste0(seq(0, 100, 10), "%")) +
+  geom_text(x = "2021", y = 52,
+            label = 'Indonesia',
+            hjust = 1, size = 5,
+            color = "#03bf7d", family = "dm_sans") +
+  geom_text(x = "2017", y = 55,
+            label = 'Cambodia',
+            hjust = 1, size = 5,
+            color = "#f7766d", family = "dm_sans") +
+  geom_text(x = "2018", y = 39,
+            label = 'Paraguay',
+            hjust = 1, size = 5,
+            color = "#e66bf3", family = "dm_sans") +
+  geom_text(x = "2021", y = 32,
+            label = 'Nicaragua',
+            hjust = 1, size = 5,
+            color = "#02b1f6", family = "dm_sans") +
+  geom_text(x = "2021", y = 20,
+            label = 'Gambia',
+            hjust = 1, size = 5,
+            color = "#a3a500", family = "dm_sans") +
+  labs(x = "", y = "",
+       title = "Top Deforested Countries",
+       subtitle = "Five countries with the greatest forest loss from 1990 to 2021") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0,
+                                  family = "dm_sans",
+                                  face = "bold",
+                                  size = 35),
+        plot.subtitle = element_text(hjust = 0,
+                                     family = "dm_sans",
+                                     size = 25),
+        axis.text.y = element_text(family = "dm_sans",
+                                 size = 15),
+        axis.text.x = element_text(family = "dm_sans",
+                                   size = 10),
+        panel.grid.major.x = element_blank(),
+        legend.position = "none")
+              
+  
+vis1
+
+#save png
+ggsave(file = "D4JSem2/Vis_1.png",
+       dpi = 100,
+       height = 7,
+       width = 15)
+# plot top 5 - bar chart - didn't end up using for the assignment
 
 vis1_top5 <- top5 %>% 
   ggplot () +
@@ -437,29 +488,27 @@ vis1_top5 <- top5 %>%
 
 
   vis1_top5
-#save as png file
-ggsave(file = "D4JSem2/Vis_1.png",
-       dpi = 100,
-       height = 7,
-       width = 10)
 
 ##### visualisation 2 #####
 # map of change in global % of forest with fill that depicts the %
 
 #input shapefile
-polygon_sf <- read_sf("~/D4JSem2/SD5813/world-administrative-boundaries/world-administrative-boundaries.shp")
+
+polygon_sf <- read_sf("~/D4JSem2/SD5813-copy/world-administrative-boundaries/world-administrative-boundaries.shp")
+# check crs
+
 st_crs(polygon_sf)
-#basic plot
-ggplot() +
-  geom_sf(data = polygon_sf) +
-  theme_minimal()
-# rename data to match forest data
+
+# rename polygon data to match forest data
+
 polygon_sf <- polygon_sf %>%
   rename("Country Name" = "name")
 # select only relevant variables
+
 polygon_sf <- polygon_sf %>%
   select("Country Name", "geometry")
-# compare polygon data with forest data to see if names of countries match and rename to that they match
+# rename countries which differ between two datasets
+
 conditions <- c ("Antigua and Barbuda", "Bahamas, The", "Bosnia and Herzegovina", "Cabo Verde", 
                  "Congo, Dem. Rep.", "Congo, Rep.", "Cote d'Ivoire", "Czechia", "Egypt, Arab Rep.", 
                  "Gambia, The", "Iran, Islamic Rep.", "Korea, Dem. People's Rep.", "Korea, Rep.", "Kyrgyz Republic", 
@@ -476,45 +525,47 @@ replacements <- c("Antigua & Barbuda", "Bahamas", "Bosnia & Herzegovina", "Cape 
                   "Turkey", "United Republic of Tanzania", "U.K. of Great Britain and Northern Ireland", "United States of America",
                   "Venezuela", "Vietnam", "Yemen")
 final_forest_table$`Country Name` <- replace(final_forest_table$`Country Name`, final_forest_table$`Country Name` %in% conditions, replacements)
-# merge final_forest_table with polygon_sf
-# filter only difference data
+# filter relevant forest data
+
 forest_difference <- final_forest_table %>% 
   select("Country Name", "difference")
+# merge polygon data with forest data
 
 merged_data <- polygon_sf %>%
   left_join(forest_difference, by = "Country Name")
-# quick plot 
-ggplot() + 
-  geom_sf(data=merged_data,aes(fill = difference)) +
-  scale_fill_viridis() + 
-  labs(fill = "Change in total forest % from 1990-2021") + 
-  theme_bw()
-#adjust breaks to have a better scale
+
+#check max and min of data, adjust breaks to have a better scale and create diverging colour palette
+
 min(forest_difference$difference)
 max(forest_difference$difference)
 breaks <- c(-26, -20, -15, -10, -5, 0, 5, 10, 15, 20, 26)
 palette <- (RColorBrewer::brewer.pal(length(breaks), "PuOr"))
 
-#2nd plot
+# plot
+
 vis2 <- ggplot() + 
   geom_sf(data=merged_data,aes(fill = difference)) +
   scale_fill_stepsn(colors = palette,
                     breaks = breaks,
                     limits = c(-26, 26),
                     values = scales::rescale(c(-26, -20, -15, -10, -5, 0, 5, 10, 15, 20, 26))) +
-  labs(fill = "Change in percentage of total forest",
+  labs(fill = "Change in percentage of <br> total forest",
        title = "Global Change in Forested Land",
        subtitle = "Percentage of total forest <span style = 'color:#803b08;'> **loss** </span> and <span style = 'color:#2d0a4b;'> **gain** </span> from 1990-2021") +
   theme_void() +
   theme(plot.title = element_text(hjust = 0,
                                   family = "dm_sans",
                                   face = "bold",
-                                  size = 30),
+                                  size = 35),
         plot.subtitle = element_markdown(hjust = 0,
                                          family = "dm_sans",
-                                         size = 20),
+                                         size = 25),
         axis.text = element_text(family = "dm_sans",
-                                 size = 8)) +
+                                 size = 10),
+        legend.title = element_markdown(family = "dm_sans",
+                                    size = 20),
+        legend.text = element_text(family = "dm_sans",
+                                   size = 10))+
   
   annotation_scale(location = "bl",
     bar_cols = c("black", "white"))+
@@ -526,20 +577,25 @@ vis2 <- ggplot() +
 vis2
 
 #save as png file
+
 ggsave(file = "D4JSem2/Vis_2.png",
        dpi = 100,
        height = 7,
        width = 15)
 
 ######visualisation 3 ##########
+#interactive difference plot on leaflet
 # create colour palette
+
 pal <- colorNumeric(
   palette = "PuOr",
   domain = merged_data$difference)
 # remove missing values
+
 merged_data <- merged_data %>% 
   filter(!is.na(`difference`))
-# add data to leaflet
+# plot
+
 leaflet(data = merged_data) %>%
   addTiles() %>%
   addPolygons(
@@ -560,3 +616,4 @@ leaflet(data = merged_data) %>%
     position = "bottomright") %>% 
   addScaleBar("bottomleft")
 
+#save with wifi with correct fonts - add font to leaflet? how to change height of legend for plot 2 to be able to make font bigger, increase font size in plot 3?
