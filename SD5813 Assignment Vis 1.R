@@ -615,5 +615,3 @@ leaflet(data = merged_data) %>%
     title = "Percentage of total forest <br> <span style = 'color:#803b08;'> loss </span> and <span style = 'color:#2d0a4b;'> gain </span> from 1990-2021",
     position = "bottomright") %>% 
   addScaleBar("bottomleft")
-
-#save with wifi with correct fonts - add font to leaflet? how to change height of legend for plot 2 to be able to make font bigger, increase font size in plot 3?
